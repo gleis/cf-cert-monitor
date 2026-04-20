@@ -1,0 +1,7 @@
+{
+  "api_token": "cf-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "expiring_soon_days": 31,
+  "slack_webhook_url": "https://hooks.slack.com/services/XXX/YYY/ZZZ",
+  "report_path": "reports/cfcert_report.html",
+  "report_title": "Cloudflare Certificate Report"
+}

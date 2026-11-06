@@ -71,3 +71,31 @@ def notify_slack(
         except requests.RequestException as exc:
             log.warning("Slack POST failed for %s: %s", status.zone_name, exc)
     return sent
+
+
+def notify_webhook(
+    webhook_url: str | None,
+    statuses: list[CertStatus],
+    *,
+    session: requests.Session | None = None,
+    timeout: int = 10,
+) -> int:
+    """Send a vendor-neutral JSON event for each expiring certificate."""
+    if not webhook_url:
+        return 0
+    http = session or requests.Session()
+    sent = 0
+    for status in statuses:
+        payload = {"event": "certificate.expired" if status.expired else "certificate.expiring",
+                   "zone": status.zone_name, "hosts": status.cert.hosts,
+                   "expires_on": status.cert.expires_on, "days_left": status.days_left,
+                   "issuer": status.cert.issuer}
+        try:
+            response = http.post(webhook_url, json=payload, timeout=timeout)
+            if 200 <= response.status_code < 300:
+                sent += 1
+            else:
+                log.warning("Webhook returned HTTP %s for %s", response.status_code, status.zone_name)
+        except requests.RequestException:
+            log.warning("Webhook POST failed for %s", status.zone_name)
+    return sent

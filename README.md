@@ -16,7 +16,7 @@ Built because "did that cert renew?" is a question nobody should have to answer 
 ## Quickstart
 
 ```bash
-git clone https://github.com/mgleissn/cf-cert-monitor
+git clone https://github.com/gleis/cf-cert-monitor
 cd cf-cert-monitor
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
@@ -73,7 +73,7 @@ Cron example (daily at 7am, fail the job if anything is expiring so the wrapper 
 0 7 * * * cd /opt/cf-cert-monitor && ./.venv/bin/cf-cert-monitor -c /etc/cf-cert-monitor/config.json --fail-on-expiring || /usr/local/bin/page-ops "cert monitor flagged"
 ```
 
-Or drop it straight into GitHub Actions — see `.github/workflows/ci.yml` for a tested Python matrix and extend with a scheduled `cron:` trigger.
+The daily `.github/workflows/monitor.yml` runs at 12:17 UTC. Set repository secret `CF_API_TOKEN` and optional `CF_SLACK_WEBHOOK_URL`. Reports stay private to the job; no hostname inventory is uploaded. Run manually with Actions → Certificate monitor.
 
 ## Project layout
 
@@ -108,3 +108,11 @@ ruff check .        # lint
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+## Zone thresholds and routing
+
+Optional `zone_policies` is keyed by exact zone name. Each entry can set `expiring_soon_days`, `slack_webhook_url`, and `webhook_url`. Missing routes inherit global settings; null disables that route for the zone. Global `webhook_url` sends vendor-neutral JSON events (`event`, `zone`, `hosts`, `expires_on`, `days_left`, `issuer`). `--threshold` overrides every zone threshold; `--no-webhook` and `--no-slack` independently disable delivery. Report status colors use each zone's threshold; the header shows the default threshold.
+
+```json
+{"api_token":"use CF_API_TOKEN instead","expiring_soon_days":31,"zone_policies":{"example.com":{"expiring_soon_days":14,"slack_webhook_url":null,"webhook_url":"https://example.net/alerts"}}}
+```

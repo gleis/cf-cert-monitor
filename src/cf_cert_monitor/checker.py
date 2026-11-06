@@ -43,6 +43,7 @@ def evaluate(
     zone_certs: list[ZoneCerts],
     threshold_days: int,
     now: datetime | None = None,
+    zone_thresholds: dict[str, int] | None = None,
 ) -> list[CertStatus]:
     """Attach expiration status to every cert and flag anything at or under threshold."""
     results: list[CertStatus] = []
@@ -54,7 +55,7 @@ def evaluate(
                     zone_name=zc.zone.name,
                     cert=cert,
                     days_left=days,
-                    expiring_soon=days <= threshold_days,
+                    expiring_soon=days <= (zone_thresholds or {}).get(zc.zone.name, threshold_days),
                     expired=days < 0,
                 )
             )

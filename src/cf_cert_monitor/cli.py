@@ -10,7 +10,7 @@ from . import __version__
 from .checker import evaluate, expiring
 from .client import CloudflareClient, CloudflareError
 from .config import Config, ConfigError
-from .notify import notify_slack
+from .notify import notify_slack, notify_webhook
 from .report import render, write_report
 
 # Exit codes — documented so operators can build on them.
@@ -49,6 +49,7 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Skip Slack notifications even if a webhook is configured",
     )
+    parser.add_argument("--no-webhook", action="store_true", help="Skip generic webhook notifications")
     parser.add_argument(
         "--no-report",
         action="store_true",
@@ -101,14 +102,21 @@ def main(argv: list[str] | None = None) -> int:
         len(zone_certs),
     )
 
-    statuses = evaluate(zone_certs, threshold_days=threshold)
+    zone_thresholds = {} if args.threshold is not None else {
+        name: policy.get("expiring_soon_days", threshold)
+        for name, policy in config.zone_policies.items()
+    }
+    statuses = evaluate(zone_certs, threshold_days=threshold, zone_thresholds=zone_thresholds)
     soon = expiring(statuses)
     log.info("%d cert(s) within the %d-day threshold", len(soon), threshold)
 
-    if not args.no_slack:
-        sent = notify_slack(config.slack_webhook_url, soon)
-        if sent:
-            log.info("Sent %d Slack notification(s)", sent)
+    for zone_name in {status.zone_name for status in soon}:
+        group = [status for status in soon if status.zone_name == zone_name]
+        policy = config.zone_policies.get(zone_name, {})
+        if not args.no_slack:
+            notify_slack(policy.get("slack_webhook_url", config.slack_webhook_url), group)
+        if not args.no_webhook:
+            notify_webhook(policy.get("webhook_url", config.webhook_url), group)
 
     if not args.no_report:
         html = render(statuses, title=config.report_title, threshold_days=threshold)

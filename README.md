@@ -67,13 +67,17 @@ Exit codes:
 
 ## Running on a schedule
 
-Cron example (daily at 7am, fail the job if anything is expiring so the wrapper can page you):
+Run checks on your own computer or private server. Keep the token in a local configuration file outside the checkout, for example `~/.config/cf-cert-monitor/config.json`, and restrict its permissions with `chmod 600`. Create the repository's `.venv` and install the package before scheduling.
+
+The local wrapper uses that configuration and a private working directory under `~/.local/state/cf-cert-monitor`. It preserves the monitor's exit status. Override the paths with `CF_CERT_MONITOR_CONFIG` and `CF_CERT_MONITOR_STATE_DIR` when needed.
+
+Cron example (daily at 7am; replace the checkout path):
 
 ```
-0 7 * * * cd /opt/cf-cert-monitor && ./.venv/bin/cf-cert-monitor -c /etc/cf-cert-monitor/config.json --fail-on-expiring || /usr/local/bin/page-ops "cert monitor flagged"
+0 7 * * * /absolute/path/cf-cert-monitor/scripts/check-local.sh
 ```
 
-The daily `.github/workflows/monitor.yml` runs at 12:17 UTC. Set repository secret `CF_API_TOKEN` and optional `CF_SLACK_WEBHOOK_URL`. Reports stay private to the job; no hostname inventory is uploaded. Run manually with Actions → Certificate monitor.
+GitHub Actions runs tests and dependency checks only. Live account monitoring runs locally; no Cloudflare token or hostname inventory is needed in GitHub. Scheduling requires an awake computer or a private server. The Cloudflare API integration checks Cloudflare for SaaS custom-hostname certificates; it does not inventory ordinary zone edge certificates.
 
 ## Project layout
 

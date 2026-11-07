@@ -19,12 +19,16 @@ Built because "did that cert renew?" is a question nobody should have to answer 
 git clone https://github.com/gleis/cf-cert-monitor
 cd cf-cert-monitor
 python -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
+pip install --require-hashes -r requirements-dev.lock
+pip install --no-deps -e .
 
-cp config.example.json config.json
-# edit config.json — add your Cloudflare API token and Slack webhook
+config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/cf-cert-monitor"
+mkdir -p "$config_dir"
+cp config.example.json "$config_dir/config.json"
+chmod 600 "$config_dir/config.json"
+# Edit this local file to add your Cloudflare API token and optional webhook.
 
-cf-cert-monitor --config config.json
+./scripts/check-local.sh
 ```
 
 Want to see what the HTML report looks like before connecting a real account? Run the demo:
